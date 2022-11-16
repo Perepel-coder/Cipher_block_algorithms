@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="Mathematics">
+      <HintPath>..\..\libraries\Mathematics\bin\Release\net6.0\Mathematics.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

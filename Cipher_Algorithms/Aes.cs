@@ -3,7 +3,7 @@ using Mathematics;
 
 namespace Cipher.Cipher_Algorithms
 {
-    public class Aes:ICipherBlockAlgorithm
+    public class Aes : ICipherBlockAlgorithm
     {
         private readonly int numWBlock;        // кол-во слов в блоке
         private readonly int numWKey;          // кол-во слов в ключе
@@ -32,12 +32,12 @@ namespace Cipher.Cipher_Algorithms
         private List<Word[]> ExpandKey(List<byte> key)
         {
             List<Word> NewKey = new();
+            int counter = this.numWBlock * (this.numRound + 1);
             while (key.Count % (this.numWKey * this.numBWord) != 0) { key.Add((byte)defaultChar); }
             for (int i = 0; i < key.Count; i += 4)
             {
                 NewKey.Add(new Word(key, i));
             }
-            int counter = this.numWBlock * (this.numRound + 1);
             for (int i = this.numWKey; i < counter; i++)
             {
                 Word temp = NewKey[i - 1];
@@ -59,7 +59,11 @@ namespace Cipher.Cipher_Algorithms
                 result.Add(new Word[this.numWBlock]);
                 for (int j = 0; j < this.numWBlock; j++, x++) { result[i][j] = NewKey[x]; }
             }
-            return result;
+            for (int i = this.numRound + 1; i < result.Count - 1; i++)
+            {
+                result[i] = XorBlocks(result[i], result[i + 1], this.numWBlock);
+            }
+            return (result.ToArray())[0..(this.numRound + 1)].ToList();
         }
 
         /// <summary>
@@ -84,7 +88,7 @@ namespace Cipher.Cipher_Algorithms
         private static Word[] XorBlocks(Word[] block1, Word[] block2, int size)
         {
             Word[] result = new Word[size];
-            for(int i = 0; i < size; i++)
+            for (int i = 0; i < size; i++)
             {
                 result[i] = block1[i].XOR(block2[i]);
             }
@@ -219,7 +223,7 @@ namespace Cipher.Cipher_Algorithms
             {
                 int[,] matrixWord = new int[,]
                 {
-                    {word.Byte1 }, {word.Byte2 }, {word.Byte3 }, {word.Byte4 } 
+                    {word.Byte1 }, {word.Byte2 }, {word.Byte3 }, {word.Byte4 }
                 };
                 matrixWord = MathematicsGF.MultOfMatrixGF(matrix, matrixWord, 283);
                 word.Byte1 = (byte)matrixWord[0, 0];
@@ -233,7 +237,7 @@ namespace Cipher.Cipher_Algorithms
         #region Преобразование List<byte> в List<Word[]>
         private void GetWordsViewFromByte(int numOfBlocks, List<byte> inputData, List<Word[]> currentData)
         {
-            while (inputData.Count % (this.numWBlock * this.numBWord) != 0) { inputData.Add((byte)defaultChar); }
+            while (inputData.Count % (numOfBlocks * this.numWBlock * this.numBWord) != 0) { inputData.Add((byte)defaultChar); }
             int j = 0;
             for (int i = 0; i < numOfBlocks; i++)
             {
@@ -313,13 +317,13 @@ namespace Cipher.Cipher_Algorithms
         /// </summary>
         /// <param name="inputData"> входные данные </param>
         /// <param name="key"> ключ </param>
-        public IEnumerable<byte> EncodeECB(List<byte> inputData, List<byte> key)
+        public IEnumerable<byte> EncodeECB(IEnumerable<byte> inputData, IEnumerable<byte> key)
         {
             List<Word[]> currentData = new();
-            int numOfBlocks = inputData.Count / (this.numWBlock * this.numBWord) + 1;
-            this.GetWordsViewFromByte(numOfBlocks, inputData, currentData);
+            int numOfBlocks = inputData.Count() / (this.numWBlock * this.numBWord) + 1;
+            this.GetWordsViewFromByte(numOfBlocks, inputData.ToList(), currentData);
 
-            List<Word[]> currentKey = this.ExpandKey(key);
+            List<Word[]> currentKey = this.ExpandKey(key.ToList());
             for (int i = 0; i < currentData.Count; i++)
             {
                 EncodeBlock(currentData[i], currentKey, this.numRound);
@@ -334,12 +338,14 @@ namespace Cipher.Cipher_Algorithms
         /// <param name="key"> ключ </param>
         /// <returns> расшифровка </returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<byte> DecodeECB(List<byte> inputData, List<byte> key)
+        public IEnumerable<byte> DecodeECB(IEnumerable<byte> inputData, IEnumerable<byte> key)
         {
             List<Word[]> currentData = new();
-            this.GetWordsViewFromByte(inputData.Count / (this.numWBlock * this.numBWord), inputData, currentData);
+            int numOfBlocks = inputData.Count() / (this.numWBlock * this.numBWord);
+            if (numOfBlocks == 0) { throw new Exception("Не корректные входные данные."); }
+            this.GetWordsViewFromByte(numOfBlocks, inputData.ToList(), currentData);
 
-            List<Word[]> currentKey = this.ExpandKey(key);
+            List<Word[]> currentKey = this.ExpandKey(key.ToList());
             for (int i = 0; i < currentData.Count; i++)
             {
                 DecodeBlock(currentData[i], currentKey, this.numRound);
@@ -355,17 +361,17 @@ namespace Cipher.Cipher_Algorithms
         /// <param name="initVector"> управлябщий вектор </param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<byte> EncodeCBC(List<byte> inputData, List<byte> key, int initVector) 
+        public IEnumerable<byte> EncodeCBC(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
         {
             List<Word[]> currentData = new();
-            int numOfBlocks = inputData.Count / (this.numWBlock * this.numBWord) + 1;
-            this.GetWordsViewFromByte(numOfBlocks, inputData, currentData);
+            int numOfBlocks = inputData.Count() / (this.numWBlock * this.numBWord) + 1;
+            this.GetWordsViewFromByte(numOfBlocks, inputData.ToList(), currentData);
 
             List<Word[]> vec = new();
-            this.GetWordsViewFromByte( numOfBlocks, this.CreatInitVector(initVector, numOfBlocks), vec);
-            List<Word[]> currentKey = this.ExpandKey(key);
+            this.GetWordsViewFromByte(numOfBlocks, this.CreatInitVector(initVector, numOfBlocks), vec);
+            List<Word[]> currentKey = this.ExpandKey(key.ToList());
 
-            for(int i = 0; i < currentData.Count; i++)
+            for (int i = 0; i < currentData.Count; i++)
             {
                 if (i == 0) { currentData[0] = Aes.XorBlocks(vec[0].ToArray(), currentData[0], this.numWBlock); }
                 else { currentData[i] = Aes.XorBlocks(currentData[i - 1], currentData[i], this.numWBlock); }
@@ -381,15 +387,16 @@ namespace Cipher.Cipher_Algorithms
         /// <param name="key"> входные данные </param>
         /// <param name="intVec"> управлябщий вектор </param>
         /// <returns></returns>
-        public IEnumerable<byte> DecodeCBC(List<byte> inputData, List<byte> key, int initVector) 
+        public IEnumerable<byte> DecodeCBC(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
         {
             List<Word[]> currentData = new();
-            int numOfBlocks = inputData.Count / (this.numWBlock * this.numBWord);
-            this.GetWordsViewFromByte(numOfBlocks, inputData, currentData);
+            int numOfBlocks = inputData.Count() / (this.numWBlock * this.numBWord);
+            if (numOfBlocks == 0) { throw new Exception("Не корректные входные данные."); }
+            this.GetWordsViewFromByte(numOfBlocks, inputData.ToList(), currentData);
 
             List<Word[]> vec = new();
             this.GetWordsViewFromByte(numOfBlocks, this.CreatInitVector(initVector, numOfBlocks), vec);
-            List<Word[]> currentKey = this.ExpandKey(key);
+            List<Word[]> currentKey = this.ExpandKey(key.ToList());
             List<Word[]> cipherData = new();
             foreach (var el in currentData)
             {
@@ -407,14 +414,14 @@ namespace Cipher.Cipher_Algorithms
             return this.GetResultData(currentData, false);
         }
 
-        public IEnumerable<byte> EncodeGammingCBE(List<byte> inputData, List<byte> key, int initVector)
+        public IEnumerable<byte> EncodeGammingECB(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
         {
-            int numOfBlocks = inputData.Count / (this.numWBlock * this.numBWord) + 1;
+            int numOfBlocks = inputData.Count() / (this.numWBlock * this.numBWord) + 1;
             List<Word[]> gammaWords = new();
             List<byte> gammaBytes = this.CreatInitVector(initVector, numOfBlocks);
-            for (int i = 0; i < inputData.Count; i++) { gammaBytes[i] ^= inputData[i]; }
+            for (int i = 0; i < inputData.Count(); i++) { gammaBytes[i] ^= inputData.ToList()[i]; }
             this.GetWordsViewFromByte(numOfBlocks, gammaBytes, gammaWords);
-            List<Word[]> currentKey = this.ExpandKey(key);
+            List<Word[]> currentKey = this.ExpandKey(key.ToList());
             for (int i = 0; i < gammaWords.Count; i++)
             {
                 this.EncodeBlock(gammaWords[i], currentKey, this.numRound);
@@ -422,19 +429,20 @@ namespace Cipher.Cipher_Algorithms
             return this.GetResultData(gammaWords, true);
         }
 
-        public IEnumerable<byte> DecodeGammingCBE(List<byte> inputData, List<byte> key, int initVector)
+        public IEnumerable<byte> DecodeGammingECB(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
         {
-            int numOfBlocks = inputData.Count / (this.numWBlock * this.numBWord);
             List<Word[]> gammaWords = new();
-            this.GetWordsViewFromByte(numOfBlocks, inputData, gammaWords);
-            List<Word[]> currentKey = this.ExpandKey(key);
+            int numOfBlocks = inputData.Count() / (this.numWBlock * this.numBWord);
+            if (numOfBlocks == 0) { throw new Exception("Не корректные входные данные."); }
+            this.GetWordsViewFromByte(numOfBlocks, inputData.ToList(), gammaWords);
+            List<Word[]> currentKey = this.ExpandKey(key.ToList());
             for (int i = 0; i < gammaWords.Count; i++)
             {
                 this.DecodeBlock(gammaWords[i], currentKey, this.numRound);
             }
             List<byte> gamma = this.CreatInitVector(initVector, numOfBlocks);
             List<byte> gammaBytes = this.GetResultData(gammaWords, true).ToList();
-            for (int i = 0; i < inputData.Count; i++) { gammaBytes[i] ^= gamma[i]; }
+            for (int i = 0; i < inputData.Count(); i++) { gammaBytes[i] ^= gamma[i]; }
             return gammaBytes;
         }
 

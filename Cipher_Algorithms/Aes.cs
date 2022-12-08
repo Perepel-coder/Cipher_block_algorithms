@@ -10,6 +10,7 @@ namespace Cipher.Cipher_Algorithms
         private readonly int numBWord;         // кол-во байт в слове (длина слова)
         private readonly int numRound;         // кол-во раундов
         private readonly char defaultChar;     // дополняющий символ
+        public int BlockSize { get; }
 
         public Aes(int NumberWordkey, int NumberWordBlock, char defaultChar)
         {
@@ -17,6 +18,7 @@ namespace Cipher.Cipher_Algorithms
             this.numWKey = NumberWordkey;
             this.numBWord = 4;
             this.defaultChar = defaultChar;
+            this.BlockSize = this.numWBlock * this.numBWord;
             switch (NumberWordkey)
             {
                 case 4: this.numRound = 10; break;

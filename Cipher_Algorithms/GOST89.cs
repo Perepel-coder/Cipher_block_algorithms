@@ -11,6 +11,9 @@ namespace Cipher.Cipher_Algorithms
         private readonly int numRound;         // кол-во раундов
         private readonly int numKey;           // кол-во ключей
         private readonly char defaultChar;     // дополняющий символ
+
+        public int BlockSize { get; }
+
         public GOST89(char defaultChar)
         {
             this.defaultChar = defaultChar;
@@ -19,6 +22,7 @@ namespace Cipher.Cipher_Algorithms
             this.numBWord = 4;
             this.numKey = 8;
             this.numRound = 4;
+            this.BlockSize = this.numWBlock * this.numBWord;
         }
 
         /// <summary>

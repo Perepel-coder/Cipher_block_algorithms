@@ -16,13 +16,13 @@ namespace Cipher.Cipher_Algorithms
 
         public GOST89(char defaultChar)
         {
+            this.BlockSize = this.numWBlock * this.numBWord;
             this.defaultChar = defaultChar;
             this.numWKey = 1;
             this.numWBlock = 2;
             this.numBWord = 4;
             this.numKey = 8;
             this.numRound = 4;
-            this.BlockSize = this.numWBlock * this.numBWord;
         }
 
         /// <summary>
@@ -424,37 +424,28 @@ namespace Cipher.Cipher_Algorithms
             return this.GetResultData(currentData, flag);
         }
 
-        public IEnumerable<byte> EncodeGammingECB(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
+        public IEnumerable<byte> Gamming(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
         {
             if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
-            int numOfBlocks = CountOfBlocks(inputData);
             List<Word[]> gammaWords = new();
-            List<byte> gammaBytes = this.CreatInitVector(initVector, numOfBlocks);
-            for (int i = 0; i < inputData.Count(); i++) { gammaBytes[i] ^= inputData.ToList()[i]; }
+
+            // получить гамму
+            List<byte> gammaBytes = this.CreatInitVector(initVector, this.CountOfBlocks(inputData));
+
+            // преобразовать гамму в блоки
             this.GetWordsViewFromByte(gammaBytes, gammaWords);
+
             List<Word> currentKey = this.ExpandKey(key.ToList());
+            // шифрование блоков гаммы
             for (int i = 0; i < gammaWords.Count; i++)
             {
                 EncodeBlock(gammaWords[i], currentKey);
             }
-            return this.GetResultData(gammaWords, true);
-        }
+            // наложить гамму на данные
+            gammaBytes = GetResultData(gammaWords, true).ToList();
+            for (int i = 0; i < inputData.Count(); i++) { gammaBytes[i] ^= inputData.ToList()[i]; }
 
-        public IEnumerable<byte> DecodeGammingECB(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
-        {
-            if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
-            List<Word[]> gammaWords = new();
-            int numOfBlocks = CountOfBlocks(inputData);
-            this.GetWordsViewFromByte(inputData.ToList(), gammaWords);
-            List<Word> currentKey = this.ExpandKey(key.ToList());
-            for (int i = 0; i < gammaWords.Count; i++)
-            {
-                DecodeBlock(gammaWords[i], currentKey);
-            }
-            List<byte> gamma = this.CreatInitVector(initVector, numOfBlocks);
-            List<byte> gammaBytes = this.GetResultData(gammaWords, true).ToList();
-            for (int i = 0; i < inputData.Count(); i++) { gammaBytes[i] ^= gamma[i]; }
-            return gammaBytes;
+            return gammaBytes.ToArray()[0..inputData.Count()];
         }
         #endregion
     }

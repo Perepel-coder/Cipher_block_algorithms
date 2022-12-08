@@ -10,15 +10,16 @@ namespace Cipher.Cipher_Algorithms
         private readonly int numBWord;         // кол-во байт в слове (длина слова)
         private readonly int numRound;         // кол-во раундов
         private readonly char defaultChar;     // дополняющий символ
+
         public int BlockSize { get; }
 
         public Aes(int NumberWordkey, int NumberWordBlock, char defaultChar)
         {
+            this.BlockSize = this.numWBlock * this.numBWord;
             this.numWBlock = NumberWordBlock;
             this.numWKey = NumberWordkey;
             this.numBWord = 4;
             this.defaultChar = defaultChar;
-            this.BlockSize = this.numWBlock * this.numBWord;
             switch (NumberWordkey)
             {
                 case 4: this.numRound = 10; break;
@@ -429,37 +430,21 @@ namespace Cipher.Cipher_Algorithms
             return this.GetResultData(currentData, flag);
         }
 
-        public IEnumerable<byte> EncodeGammingECB(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
+        public IEnumerable<byte> Gamming(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
         {
             if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
-            int numOfBlocks = CountOfBlocks(inputData);
             List<Word[]> gammaWords = new();
-            List<byte> gammaBytes = this.CreatInitVector(initVector, numOfBlocks);
-            for (int i = 0; i < inputData.Count(); i++) { gammaBytes[i] ^= inputData.ToList()[i]; }
+            List<byte> gammaBytes = this.CreatInitVector(initVector, CountOfBlocks(inputData));
             this.GetWordsViewFromByte(gammaBytes, gammaWords);
             List<Word[]> currentKey = this.ExpandKey(key.ToList());
             for (int i = 0; i < gammaWords.Count; i++)
             {
                 this.EncodeBlock(gammaWords[i], currentKey, this.numRound);
             }
-            return this.GetResultData(gammaWords, false);
-        }
-
-        public IEnumerable<byte> DecodeGammingECB(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
-        {
-            if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
-            List<Word[]> gammaWords = new();
-            int numOfBlocks = CountOfBlocks(inputData);
-            this.GetWordsViewFromByte(inputData.ToList(), gammaWords);
-            List<Word[]> currentKey = this.ExpandKey(key.ToList());
-            for (int i = 0; i < gammaWords.Count; i++)
-            {
-                this.DecodeBlock(gammaWords[i], currentKey, this.numRound);
-            }
-            List<byte> gamma = this.CreatInitVector(initVector, numOfBlocks);
-            List<byte> gammaBytes = this.GetResultData(gammaWords, true).ToList();
-            for (int i = 0; i < gammaBytes.Count(); i++) { gammaBytes[i] ^= gamma[i]; }
-            return gammaBytes;
+            // наложить гамму на данные
+            gammaBytes = GetResultData(gammaWords, true).ToList();
+            for (int i = 0; i < inputData.Count(); i++) { gammaBytes[i] ^= inputData.ToList()[i]; }
+            return gammaBytes.ToArray()[0..inputData.Count()];
         }
         #endregion
     }

@@ -10,7 +10,6 @@ namespace Cipher.Cipher_Algorithms
         public IEnumerable<byte> EncodeCBC(IEnumerable<byte> inputData, IEnumerable<byte> key, int intVec);
         public IEnumerable<byte> DecodeCBC(IEnumerable<byte> inputData, IEnumerable<byte> key, int intVec);
 
-        public IEnumerable<byte> EncodeGammingECB(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector);
-        public IEnumerable<byte> DecodeGammingECB(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector);
+        public IEnumerable<byte> Gamming(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector);
     }
 }

@@ -153,6 +153,17 @@ namespace Cipher.Cipher_Algorithms
             while (size % (this.numWBlock * this.numBWord) != 0) { size++; }
             return size / (this.numWBlock * this.numBWord);
         }
+        private IEnumerable<byte> DeleteExtraSymbols(byte[] data)
+        {
+            int posOfDefChar = Array.IndexOf(data, (byte)this.defaultChar);
+            if (posOfDefChar == -1) { return data; }
+            byte[] defCharData = data[posOfDefChar..data.Length];
+            foreach (byte el in defCharData)
+            {
+                if (el != (byte)this.defaultChar) { return data; }
+            }
+            return data[0..posOfDefChar];
+        }
         private void GetWordsViewFromByte(List<byte> inputData, List<Word[]> currentData)
         {
             int size = CountOfBlocks(inputData);
@@ -168,7 +179,7 @@ namespace Cipher.Cipher_Algorithms
                 }
             }
         }
-        private IEnumerable<byte> GetResultData(List<Word[]> currentData, bool flag)
+        private IEnumerable<byte> GetResultData(List<Word[]> currentData)
         {
             List<byte> code = new();
             foreach (var block in currentData)
@@ -181,16 +192,7 @@ namespace Cipher.Cipher_Algorithms
                     code.Add(word.Byte4);
                 }
             }
-            if (flag)
-            {
-                return code;
-            }
-            else
-            {
-                int indexDefChar = code.IndexOf((byte)this.defaultChar);
-                if (indexDefChar < 0) { return code; }
-                return ((code.ToArray())[0..indexDefChar]).ToList();
-            }
+            return this.DeleteExtraSymbols(code.ToArray());
         }
         #endregion
 
@@ -325,8 +327,6 @@ namespace Cipher.Cipher_Algorithms
         {
             if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
             List<Word[]> currentData = new();
-            bool flag = true;
-            if (inputData.Count() % (this.numWBlock * this.numBWord) == 0) { flag = false; }
             this.GetWordsViewFromByte(inputData.ToList(), currentData);
 
             List<Word> currentKey = this.ExpandKey(key.ToList());
@@ -334,7 +334,7 @@ namespace Cipher.Cipher_Algorithms
             {
                 EncodeBlock(currentData[i], currentKey);
             }
-            return this.GetResultData(currentData, flag);
+            return this.GetResultData(currentData);
         }
 
         /// <summary>
@@ -348,8 +348,6 @@ namespace Cipher.Cipher_Algorithms
         {
             if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
             List<Word[]> currentData = new();
-            bool flag = true;
-            if (inputData.Count() % (this.numWBlock * this.numBWord) == 0) { flag = false; }
             this.GetWordsViewFromByte(inputData.ToList(), currentData);
 
             List<Word> currentKey = this.ExpandKey(key.ToList());
@@ -357,7 +355,7 @@ namespace Cipher.Cipher_Algorithms
             {
                 DecodeBlock(currentData[i], currentKey);
             }
-            return this.GetResultData(currentData, flag);
+            return this.GetResultData(currentData);
         }
 
         /// <summary>
@@ -372,8 +370,6 @@ namespace Cipher.Cipher_Algorithms
         {
             if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
             List<Word[]> currentData = new();
-            bool flag = true;
-            if (inputData.Count() % (this.numWBlock * this.numBWord) == 0) { flag = false; }
             this.GetWordsViewFromByte(inputData.ToList(), currentData);
 
             List<Word[]> vec = new();
@@ -387,7 +383,7 @@ namespace Cipher.Cipher_Algorithms
                 else { currentData[i] = GOST89.XorBlocks(currentData[i - 1], currentData[i], this.numWBlock); }
                 EncodeBlock(currentData[i], currentKey);
             }
-            return this.GetResultData(currentData, flag);
+            return this.GetResultData(currentData);
         }
 
         /// <summary>
@@ -401,8 +397,6 @@ namespace Cipher.Cipher_Algorithms
         {
             if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
             List<Word[]> currentData = new();
-            bool flag = true;
-            if (inputData.Count() % (this.numWBlock * this.numBWord) == 0) { flag = false; }
             this.GetWordsViewFromByte(inputData.ToList(), currentData);
 
             List<Word[]> vec = new();
@@ -421,7 +415,7 @@ namespace Cipher.Cipher_Algorithms
                 if (i == 0) { currentData[0] = GOST89.XorBlocks(vec[0].ToArray(), currentData[0], this.numWBlock); }
                 else { currentData[i] = GOST89.XorBlocks(cipherData[i - 1], currentData[i], this.numWBlock); }
             }
-            return this.GetResultData(currentData, flag);
+            return this.GetResultData(currentData);
         }
 
         public IEnumerable<byte> Gamming(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
@@ -442,11 +436,13 @@ namespace Cipher.Cipher_Algorithms
                 EncodeBlock(gammaWords[i], currentKey);
             }
             // наложить гамму на данные
-            gammaBytes = GetResultData(gammaWords, true).ToList();
+            gammaBytes = GetResultData(gammaWords).ToList();
             for (int i = 0; i < inputData.Count(); i++) { gammaBytes[i] ^= inputData.ToList()[i]; }
 
             return gammaBytes.ToArray()[0..inputData.Count()];
         }
         #endregion
+
+        
     }
 }

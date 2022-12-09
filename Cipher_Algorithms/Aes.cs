@@ -379,7 +379,7 @@ namespace Cipher.Cipher_Algorithms
             this.GetWordsViewFromByte(inputData.ToList(), currentData);
 
             List<Word[]> vec = new();
-            this.GetWordsViewFromByte(this.CreatInitVector(initVector, inputData.Count() / (this.numWBlock * this.numBWord)), vec);
+            this.GetWordsViewFromByte(this.CreatInitVector(initVector, this.numBWord), vec);
             List<Word[]> currentKey = this.ExpandKey(key.ToList());
 
             for (int i = 0; i < currentData.Count; i++)
@@ -405,7 +405,7 @@ namespace Cipher.Cipher_Algorithms
             this.GetWordsViewFromByte(inputData.ToList(), currentData);
 
             List<Word[]> vec = new();
-            this.GetWordsViewFromByte(this.CreatInitVector(initVector, inputData.Count() / (this.numWBlock * this.numBWord)), vec);
+            this.GetWordsViewFromByte(this.CreatInitVector(initVector, this.numBWord), vec);
             List<Word[]> currentKey = this.ExpandKey(key.ToList());
             List<Word[]> cipherData = new();
             foreach (var el in currentData)

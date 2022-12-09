@@ -368,13 +368,16 @@ namespace Cipher.Cipher_Algorithms
         /// <exception cref="Exception"></exception>
         public IEnumerable<byte> EncodeCBC(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
         {
+            // привести входные данные к блочному виду
             if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
             List<Word[]> currentData = new();
             this.GetWordsViewFromByte(inputData.ToList(), currentData);
 
+            // создать инициализирующий вектор
             List<Word[]> vec = new();
-            this.GetWordsViewFromByte(this.CreatInitVector(initVector, inputData.Count() / (this.numWBlock * this.numBWord)), vec);
+            this.GetWordsViewFromByte(this.CreatInitVector(initVector, this.numBWord), vec);
 
+            // генерировать ключи
             List<Word> currentKey = this.ExpandKey(key.ToList());
 
             for (int i = 0; i < currentData.Count; i++)
@@ -396,12 +399,19 @@ namespace Cipher.Cipher_Algorithms
         public IEnumerable<byte> DecodeCBC(IEnumerable<byte> inputData, IEnumerable<byte> key, int initVector)
         {
             if (inputData.Count() == 0 || key.Count() == 0) { return inputData; }
+
+            // привести входные данные к блочному виду
             List<Word[]> currentData = new();
             this.GetWordsViewFromByte(inputData.ToList(), currentData);
 
+            // создать инициализирующий вектор
             List<Word[]> vec = new();
-            this.GetWordsViewFromByte(this.CreatInitVector(initVector, inputData.Count() / (this.numWBlock * this.numBWord)), vec);
+            this.GetWordsViewFromByte(this.CreatInitVector(initVector, this.numBWord), vec);
+
+            // генерировать ключи
             List<Word> currentKey = this.ExpandKey(key.ToList());
+
+            // копировать входные данные в переменную cipherData
             List<Word[]> cipherData = new();
             foreach (var el in currentData)
             {
@@ -441,8 +451,6 @@ namespace Cipher.Cipher_Algorithms
 
             return gammaBytes.ToArray()[0..inputData.Count()];
         }
-        #endregion
-
-        
+        #endregion       
     }
 }
